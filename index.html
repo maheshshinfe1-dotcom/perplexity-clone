@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perplexity Clone — Live AI Answer Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-main: #191a1a;
+      --bg-sidebar: #141515;
+      --bg-card: #202222;
+      --border-subtle: #2e3131;
+      --accent: #20b8cd;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: #e8e8e6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    }
+    .answer-prose h1, .answer-prose h2, .answer-prose h3 {
+      color: #ffffff;
+      font-weight: 600;
+      margin-top: 1.15rem;
+      margin-bottom: 0.5rem;
+    }
+    .answer-prose h2 { font-size: 1.2rem; }
+    .answer-prose h3 { font-size: 1.05rem; }
+    .answer-prose p { margin-bottom: 0.85rem; line-height: 1.7; color: #d8d8d6; }
+    .answer-prose ul, .answer-prose ol { margin-left: 1.25rem; margin-bottom: 0.9rem; }
+    .answer-prose ul { list-style-type: disc; }
+    .answer-prose ol { list-style-type: decimal; }
+    .answer-prose li { margin-bottom: 0.4rem; line-height: 1.65; color: #d8d8d6; }
+    .answer-prose strong { color: #ffffff; font-weight: 600; }
+    .answer-prose code {
+      background: #262929;
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.3rem;
+      font-size: 0.88em;
+      color: #7ee3f2;
+    }
+    .answer-prose pre {
+      background: #121313;
+      border: 1px solid var(--border-subtle);
+      padding: 0.9rem;
+      border-radius: 0.6rem;
+      overflow-x: auto;
+      margin: 0.85rem 0;
+    }
+    .answer-prose pre code { background: transparent; padding: 0; color: #e8e8e6; }
+    .citation-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.15rem;
+      height: 1.15rem;
+      padding: 0 0.3rem;
+      margin: 0 0.12rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #20b8cd;
+      background: rgba(32, 184, 205, 0.14);
+      border: 1px solid rgba(32, 184, 205, 0.35);
+      border-radius: 9999px;
+      text-decoration: none;
+      vertical-align: super;
+      transition: all 0.15s ease;
+    }
+    .citation-pill:hover {
+      background: #20b8cd;
+      color: #0e1010;
+    }
+    .focus-pill-active {
+      background: rgba(32, 184, 205, 0.16);
+      border-color: rgba(32, 184, 205, 0.6);
+      color: #20b8cd;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 0.3; transform: scale(0.85); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+    .pulse-dot { animation: pulseDot 1.2s infinite ease-in-out; }
+  </style>
+</head>
+<body class="min-h-screen flex bg-[#191a1a]">
+
+  <!-- Left Persistent Library Sidebar -->
+  <aside id="sidebar" class="w-64 shrink-0 bg-[#141515] border-r border-[#262929] hidden md:flex flex-col h-screen sticky top-0">
+    <div class="p-4 border-b border-[#262929]">
+      <div class="flex items-center gap-2.5 mb-4 cursor-pointer" onclick="resetThread()">
+        <div class="w-7 h-7 rounded-lg bg-[#20b8cd]/20 border border-[#20b8cd]/50 flex items-center justify-center text-[#20b8cd] font-bold text-sm">
+          P
+        </div>
+        <span class="font-semibold text-base tracking-tight text-white">Perplexity Clone</span>
+      </div>
+      <button
+        onclick="resetThread()"
+        class="w-full py-2 px-3 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#343838] text-xs font-medium text-gray-200 flex items-center justify-between transition"
+      >
+        <span>New Thread</span>
+        <span class="text-gray-400 text-sm">+</span>
+      </button>
+    </div>
+
+    <div class="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+      Library
+    </div>
+    <div id="threadsList" class="flex-1 overflow-y-auto px-2 pb-4 space-y-1"></div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 border-b border-[#262929] bg-[#191a1a]/90 backdrop-blur">
+      <div class="max-w-4xl mx-auto px-4 h-13 py-2.5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <button
+            onclick="toggleSidebar()"
+            class="md:hidden px-2.5 py-1 rounded-lg bg-[#202222] border border-[#2e3131] text-xs text-gray-300"
+          >
+            ☰ Library
+          </button>
+          <span id="activeFocusBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-[#202222] border border-[#2e3131] text-gray-300">
+            🌐 All Web
+          </span>
+        </div>
+
+        <button
+          id="newThreadBtn"
+          onclick="resetThread()"
+          class="hidden text-xs font-medium px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-200 transition"
+        >
+          + New Thread
+        </button>
+      </div>
+    </header>
+
+    <!-- Landing Hero View -->
+    <main id="heroView" class="flex-1 flex flex-col items-center justify-center px-4 pb-20">
+      <h1 class="text-3xl sm:text-4xl font-semibold text-white tracking-tight mb-7 text-center">
+        Where knowledge begins
+      </h1>
+
+      <form id="heroForm" class="w-full max-w-2xl">
+        <div class="bg-[#202222] border border-[#343838] focus-within:border-[#20b8cd] rounded-2xl p-3 shadow-xl transition">
+          <textarea
+            id="heroInput"
+            rows="2"
+            placeholder="Ask anything about the live web..."
+            class="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none text-base px-1"
+          ></textarea>
+          <div class="flex flex-wrap items-center justify-between gap-2 mt-2 pt-2.5 border-t border-[#2c2f2f]">
+            <!-- Focus Mode Selector -->
+            <div class="flex flex-wrap items-center gap-1.5" data-focus-group>
+              <button type="button" data-focus="web" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">🌐 All Web</button>
+              <button type="button" data-focus="academic" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">🎓 Academic</button>
+              <button type="button" data-focus="code" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">💻 Code</button>
+              <button type="button" data-focus="news" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">📰 News</button>
+            </div>
+            <button
+              type="submit"
+              class="px-4 py-1.5 rounded-full bg-[#20b8cd] hover:bg-[#29cce2] text-[#0e1010] font-semibold text-sm transition"
+            >
+              Search →
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Starter Prompts -->
+      <div class="w-full max-w-2xl mt-5 flex flex-wrap gap-2 justify-center">
+        <button onclick="runQuickPrompt('What is the latest news in AI this week?', 'news')" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
+          📰 Latest AI news this week
+        </button>
+        <button onclick="runQuickPrompt('Compare FastAPI vs Django for streaming AI backends', 'code')" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
+          💻 FastAPI vs Django for AI
+        </button>
+        <button onclick="runQuickPrompt('Recent papers on test-time compute scaling in LLMs', 'academic')" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
+          🎓 Test-time compute scaling
+        </button>
+      </div>
+    </main>
+
+    <!-- Active Conversation Thread View -->
+    <main id="threadView" class="hidden flex-1 w-full max-w-4xl mx-auto px-4 pt-6 pb-40 space-y-10"></main>
+
+    <!-- Sticky Bottom Follow-Up Input Bar -->
+    <div id="bottomBar" class="hidden fixed bottom-0 left-0 md:left-64 right-0 bg-gradient-to-t from-[#191a1a] via-[#191a1a] to-transparent pt-6 pb-5 px-4 z-20">
+      <form id="followupForm" class="max-w-3xl mx-auto">
+        <div class="flex items-center gap-2 bg-[#202222] border border-[#343838] focus-within:border-[#20b8cd] rounded-full px-4 py-2 shadow-2xl transition">
+          <select id="bottomFocusSelect" class="bg-[#282b2b] text-xs text-gray-200 border border-[#3a3e3e] rounded-full px-2.5 py-1 focus:outline-none">
+            <option value="web">🌐 Web</option>
+            <option value="academic">🎓 Academic</option>
+            <option value="code">💻 Code</option>
+            <option value="news">📰 News</option>
+          </select>
+          <input
+            id="followupInput"
+            type="text"
+            autocomplete="off"
+            placeholder="Ask a follow-up..."
+            class="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base"
+          />
+          <button
+            id="followupSubmitBtn"
+            type="submit"
+            class="px-4 py-1.5 rounded-full bg-[#20b8cd] hover:bg-[#29cce2] disabled:opacity-40 text-[#0e1010] font-semibold text-sm transition"
+          >
+            Ask →
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+  <script>
+    const sidebar = document.getElementById("sidebar");
+    const threadsList = document.getElementById("threadsList");
+    const activeFocusBadge = document.getElementById("activeFocusBadge");
+    const heroView = document.getElementById("heroView");
+    const threadView = document.getElementById("threadView");
+    const bottomBar = document.getElementById("bottomBar");
+    const newThreadBtn = document.getElementById("newThreadBtn");
+    const heroForm = document.getElementById("heroForm");
+    const heroInput = document.getElementById("heroInput");
+    const followupForm = document.getElementById("followupForm");
+    const followupInput = document.getElementById("followupInput");
+    const followupSubmitBtn = document.getElementById("followupSubmitBtn");
+    const bottomFocusSelect = document.getElementById("bottomFocusSelect");
+
+    const FOCUS_LABELS = {
+      web: "🌐 All Web",
+      academic: "🎓 Academic",
+      code: "💻 Code",
+      news: "📰 News",
+    };
+
+    let currentFocus = "web";
+    let currentThreadId = null;
+    let conversationHistory = [];
+    let isStreaming = false;
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text ?? "";
+      return div.innerHTML;
+    }
+
+    function setFocus(mode) {
+      currentFocus = FOCUS_LABELS[mode] ? mode : "web";
+      activeFocusBadge.textContent = FOCUS_LABELS[currentFocus];
+      bottomFocusSelect.value = currentFocus;
+      document.querySelectorAll(".focus-btn").forEach((btn) => {
+        btn.classList.toggle("focus-pill-active", btn.dataset.focus === currentFocus);
+      });
+    }
+
+    document.querySelectorAll(".focus-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setFocus(btn.dataset.focus));
+    });
+    bottomFocusSelect.addEventListener("change", (e) => setFocus(e.target.value));
+    setFocus("web");
+
+    function toggleSidebar() {
+      sidebar.classList.toggle("hidden");
+      sidebar.classList.toggle("fixed");
+      sidebar.classList.toggle("z-40");
+    }
+
+    function renderMarkdownWithCitations(rawText, sourcesMap) {
+      const html = marked.parse(rawText || "");
+      return html.replace(/\[(\d+)\]/g, (match, num) => {
+        const src = sourcesMap[num];
+        if (!src) return match;
+        return `<a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(src.title)}" class="citation-pill">${num}</a>`;
+      });
+    }
+
+    function createTurnElement(query, focus) {
+      const turn = document.createElement("section");
+      turn.className = "border-b border-[#2a2d2d] pb-8";
+      turn.innerHTML = `
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h2 class="text-2xl sm:text-3xl font-semibold text-white tracking-tight">${escapeHtml(query)}</h2>
+          <span class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-[#202222] border border-[#2e3131] text-gray-400">
+            ${escapeHtml(FOCUS_LABELS[focus] || FOCUS_LABELS.web)}
+          </span>
+        </div>
+
+        <div class="status-bar inline-flex items-center gap-2 text-xs text-[#20b8cd] bg-[#20b8cd]/10 border border-[#20b8cd]/30 px-3 py-1.5 rounded-full mb-5">
+          <span class="w-2 h-2 rounded-full bg-[#20b8cd] pulse-dot"></span>
+          <span class="status-text">Connecting...</span>
+        </div>
+
+        <div class="sources-wrapper hidden mb-6">
+          <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
+            <span>📚</span> Sources
+          </div>
+          <div class="sources-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5"></div>
+        </div>
+
+        <div class="answer-wrapper">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+              <span>✨</span> Answer
+            </div>
+            <button type="button" class="copy-btn hidden text-xs px-2.5 py-1 rounded-lg bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
+              Copy
+            </button>
+          </div>
+          <div class="answer-prose text-base"></div>
+        </div>
+
+        <div class="followups-wrapper hidden mt-7 pt-5 border-t border-[#262929]">
+          <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5">Related</div>
+          <div class="followups-list divide-y divide-[#262929]"></div>
+        </div>
+      `;
+      threadView.appendChild(turn);
+      return turn;
+    }
+
+    function wireCopyButton(copyBtn, rawText) {
+      copyBtn.classList.remove("hidden");
+      copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(rawText);
+          copyBtn.textContent = "Copied ✓";
+          setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
+        } catch {
+          copyBtn.textContent = "Copy failed";
+        }
+      };
+    }
+
+    function renderSourceCards(container, sources) {
+      container.innerHTML = "";
+      sources.forEach((src) => {
+        const card = document.createElement("a");
+        card.href = src.url;
+        card.target = "_blank";
+        card.rel = "noopener noreferrer";
+        card.className = "group block p-2.5 rounded-xl bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] hover:border-[#3f4444] transition";
+        const faviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(src.domain)}&sz=32`;
+        card.innerHTML = `
+          <div class="text-xs font-medium text-gray-200 group-hover:text-white line-clamp-2 leading-snug mb-2">
+            ${escapeHtml(src.title)}
+          </div>
+          <div class="flex items-center justify-between gap-1 text-[11px] text-gray-400">
+            <div class="flex items-center gap-1.5 truncate">
+              <img src="${faviconUrl}" alt="" class="w-3.5 h-3.5 rounded-sm shrink-0" onerror="this.style.display='none'" />
+              <span class="truncate">${escapeHtml(src.domain)}</span>
+            </div>
+            <span class="shrink-0 w-4 h-4 rounded-full bg-[#2e3131] text-[10px] text-gray-300 flex items-center justify-center font-semibold">
+              ${src.id}
+            </span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderFollowups(container, questions) {
+      container.innerHTML = "";
+      questions.forEach((q) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "w-full text-left py-2.5 flex items-center justify-between gap-3 text-sm text-gray-300 hover:text-[#20b8cd] transition group";
+        btn.innerHTML = `
+          <span>${escapeHtml(q)}</span>
+          <span class="text-lg text-gray-500 group-hover:text-[#20b8cd] shrink-0">+</span>
+        `;
+        btn.addEventListener("click", () => executeSearch(q));
+        container.appendChild(btn);
+      });
+    }
+
+    async function refreshThreadsSidebar() {
+      try {
+        const resp = await fetch("/api/threads");
+        const data = await resp.json();
+        const threads = data.threads || [];
+        threadsList.innerHTML = "";
+
+        if (!threads.length) {
+          threadsList.innerHTML = `<div class="px-2 py-3 text-xs text-gray-500">No saved threads yet.</div>`;
+          return;
+        }
+
+        threads.forEach((t) => {
+          const row = document.createElement("div");
+          const isActive = t.id === currentThreadId;
+          row.className = `group flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg cursor-pointer text-xs transition ${
+            isActive ? "bg-[#242727] text-white" : "text-gray-400 hover:bg-[#1e2020] hover:text-gray-200"
+          }`;
+
+          const titleSpan = document.createElement("span");
+          titleSpan.className = "truncate flex-1";
+          titleSpan.textContent = t.title;
+          titleSpan.addEventListener("click", () => loadSavedThread(t.id));
+
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.title = "Delete thread";
+          delBtn.className = "opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 px-1 transition";
+          delBtn.textContent = "×";
+          delBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (isStreaming) return;
+            await fetch(`/api/threads/${encodeURIComponent(t.id)}`, { method: "DELETE" });
+            if (currentThreadId === t.id) resetThread();
+            refreshThreadsSidebar();
+          });
+
+          row.appendChild(titleSpan);
+          row.appendChild(delBtn);
+          threadsList.appendChild(row);
+        });
+      } catch (err) {
+        console.error("Failed to load sidebar threads:", err);
+      }
+    }
+
+    async function loadSavedThread(threadId) {
+      if (isStreaming) return;
+      try {
+        const resp = await fetch(`/api/threads/${encodeURIComponent(threadId)}`);
+        if (!resp.ok) return;
+        const thread = await resp.json();
+
+        currentThreadId = thread.id;
+        setFocus(thread.focus || "web");
+        conversationHistory = [];
+        threadView.innerHTML = "";
+
+        heroView.classList.add("hidden");
+        threadView.classList.remove("hidden");
+        bottomBar.classList.remove("hidden");
+        newThreadBtn.classList.remove("hidden");
+
+        (thread.turns || []).forEach((saved) => {
+          const turn = createTurnElement(saved.query, saved.focus);
+          turn.querySelector(".status-bar").classList.add("hidden");
+
+          const sourcesMap = {};
+          if (saved.sources?.length) {
+            saved.sources.forEach((s) => (sourcesMap[String(s.id)] = s));
+            renderSourceCards(turn.querySelector(".sources-grid"), saved.sources);
+            turn.querySelector(".sources-wrapper").classList.remove("hidden");
+          }
+
+          turn.querySelector(".answer-prose").innerHTML = renderMarkdownWithCitations(saved.answer, sourcesMap);
+          wireCopyButton(turn.querySelector(".copy-btn"), saved.answer);
+
+          if (saved.followups?.length) {
+            renderFollowups(turn.querySelector(".followups-list"), saved.followups);
+            turn.querySelector(".followups-wrapper").classList.remove("hidden");
+          }
+
+          conversationHistory.push({ role: "user", content: saved.query });
+          conversationHistory.push({ role: "assistant", content: saved.answer });
+        });
+
+        refreshThreadsSidebar();
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      } catch (err) {
+        console.error("Failed to open thread:", err);
+      }
+    }
+
+    async function executeSearch(query) {
+      const cleanQuery = query.trim();
+      if (!cleanQuery || isStreaming) return;
+
+      isStreaming = true;
+      followupSubmitBtn.disabled = true;
+
+      heroView.classList.add("hidden");
+      threadView.classList.remove("hidden");
+      bottomBar.classList.remove("hidden");
+      newThreadBtn.classList.remove("hidden");
+
+      const turn = createTurnElement(cleanQuery, currentFocus);
+      const statusBar = turn.querySelector(".status-bar");
+      const statusText = turn.querySelector(".status-text");
+      const sourcesWrapper = turn.querySelector(".sources-wrapper");
+      const sourcesGrid = turn.querySelector(".sources-grid");
+      const answerProse = turn.querySelector(".answer-prose");
+      const copyBtn = turn.querySelector(".copy-btn");
+      const followupsWrapper = turn.querySelector(".followups-wrapper");
+      const followupsList = turn.querySelector(".followups-list");
+
+      turn.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      let rawAnswer = "";
+      const sourcesMap = {};
+
+      try {
+        const response = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: cleanQuery,
+            history: conversationHistory,
+            thread_id: currentThreadId,
+            focus: currentFocus,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const frames = buffer.split("\n\n");
+          buffer = frames.pop();
+
+          for (const frame of frames) {
+            const line = frame.trim();
+            if (!line.startsWith("data:")) continue;
+
+            const payload = JSON.parse(line.slice(5).trim());
+
+            if (payload.type === "thread") {
+              currentThreadId = payload.thread_id;
+              refreshThreadsSidebar();
+            } else if (payload.type === "status") {
+              statusText.textContent = payload.text;
+            } else if (payload.type === "sources") {
+              payload.sources.forEach((s) => (sourcesMap[String(s.id)] = s));
+              renderSourceCards(sourcesGrid, payload.sources);
+              sourcesWrapper.classList.remove("hidden");
+            } else if (payload.type === "token") {
+              rawAnswer += payload.text;
+              answerProse.innerHTML = renderMarkdownWithCitations(rawAnswer, sourcesMap);
+            } else if (payload.type === "followups" && payload.questions?.length) {
+              renderFollowups(followupsList, payload.questions);
+              followupsWrapper.classList.remove("hidden");
+            } else if (payload.type === "error") {
+              answerProse.innerHTML = `<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">${escapeHtml(payload.text)}</div>`;
+            } else if (payload.type === "done") {
+              statusBar.classList.add("hidden");
+            }
+          }
+        }
+
+        if (rawAnswer) {
+          wireCopyButton(copyBtn, rawAnswer);
+          conversationHistory.push({ role: "user", content: cleanQuery });
+          conversationHistory.push({ role: "assistant", content: rawAnswer });
+          refreshThreadsSidebar();
+        }
+      } catch (err) {
+        statusBar.classList.add("hidden");
+        answerProse.innerHTML = `<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">Connection error: ${escapeHtml(err.message)}</div>`;
+      } finally {
+        statusBar.classList.add("hidden");
+        isStreaming = false;
+        followupSubmitBtn.disabled = false;
+        followupInput.focus();
+      }
+    }
+
+    function runQuickPrompt(text, focus = "web") {
+      setFocus(focus);
+      executeSearch(text);
+    }
+
+    function resetThread() {
+      if (isStreaming) return;
+      currentThreadId = null;
+      conversationHistory = [];
+      threadView.innerHTML = "";
+      threadView.classList.add("hidden");
+      bottomBar.classList.add("hidden");
+      newThreadBtn.classList.add("hidden");
+      heroView.classList.remove("hidden");
+      heroInput.value = "";
+      heroInput.focus();
+      refreshThreadsSidebar();
+    }
+
+    heroForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      executeSearch(heroInput.value);
+      heroInput.value = "";
+    });
+
+    heroInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        heroForm.requestSubmit();
+      }
+    });
+
+    followupForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      executeSearch(followupInput.value);
+      followupInput.value = "";
+    });
+
+    refreshThreadsSidebar();
+  </script>
+</body>
+</html>
