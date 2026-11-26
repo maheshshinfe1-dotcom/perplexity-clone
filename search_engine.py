@@ -32,7 +32,7 @@ def _run_ddgs_with_failover(query: str, max_results: int) -> list[dict]:
     """Tries multiple DDGS search backends sequentially until one returns results."""
     for backend in SEARCH_BACKENDS:
         try:
-            print(f"🌐 Searching via DDGS backend: {backend}...")
+            print(f"🌐 Searching via DDGS backend ({backend}): {query[:60]}")
             results = DDGS(timeout=10).text(
                 query,
                 max_results=max_results,
@@ -44,6 +44,13 @@ def _run_ddgs_with_failover(query: str, max_results: int) -> list[dict]:
         except Exception as e:
             print(f"⚠️ DDGS '{backend}' failed ({type(e).__name__}). Failing over...")
     return []
+
+
+async def _staggered_ddgs(query: str, max_results: int, delay: float = 0.0) -> list[dict]:
+    """Adds a small stagger before parallel searches to reduce rate-limit spikes."""
+    if delay > 0:
+        await asyncio.sleep(delay)
+    return await asyncio.to_thread(_run_ddgs_with_failover, query, max_results)
 
 
 async def _fallback_google_news_rss(client: httpx.AsyncClient, query: str, limit: int = 5) -> list[dict]:
@@ -129,25 +136,13 @@ async def fetch_page_text(client: httpx.AsyncClient, url: str, max_chars: int = 
         return ""
 
 
-async def search_and_scrape(query: str, max_results: int = 5, focus: str = "web") -> list[dict]:
-    """Queries live web search with Focus Mode + failover and scrapes returned URLs concurrently."""
-    focused_query = _apply_focus_query(query, focus)
-    raw_results = await asyncio.to_thread(_run_ddgs_with_failover, focused_query, max_results)
+async def _scrape_and_format(client: httpx.AsyncClient, raw_results: list[dict]) -> list[dict]:
+    """Scrapes all deduplicated URLs concurrently and formats final source objects."""
+    if not raw_results:
+        return []
 
-    async with httpx.AsyncClient() as client:
-        if not raw_results:
-            print("🔄 All DDGS backends rate-limited. Activating direct RSS + Wikipedia failover...")
-            rss_hits, wiki_hits = await asyncio.gather(
-                _fallback_google_news_rss(client, query, limit=max_results),
-                _fallback_wikipedia(client, query, limit=2),
-            )
-            raw_results = (rss_hits + wiki_hits)[:max_results]
-
-        if not raw_results:
-            return []
-
-        tasks = [fetch_page_text(client, item.get("href", "")) for item in raw_results]
-        scraped_pages = await asyncio.gather(*tasks)
+    tasks = [fetch_page_text(client, item.get("href", "")) for item in raw_results]
+    scraped_pages = await asyncio.gather(*tasks)
 
     sources = []
     for idx, (item, full_text) in enumerate(zip(raw_results, scraped_pages), start=1):
@@ -163,5 +158,67 @@ async def search_and_scrape(query: str, max_results: int = 5, focus: str = "web"
             "snippet": snippet,
             "content": full_text if len(full_text) > 150 else snippet,
         })
-
     return sources
+
+
+async def search_and_scrape(query: str, max_results: int = 5, focus: str = "web") -> list[dict]:
+    """Standard single-query live search with Focus Mode + failover."""
+    focused_query = _apply_focus_query(query, focus)
+    raw_results = await asyncio.to_thread(_run_ddgs_with_failover, focused_query, max_results)
+
+    async with httpx.AsyncClient() as client:
+        if not raw_results:
+            print("🔄 All DDGS backends rate-limited. Activating direct RSS + Wikipedia failover...")
+            rss_hits, wiki_hits = await asyncio.gather(
+                _fallback_google_news_rss(client, query, limit=max_results),
+                _fallback_wikipedia(client, query, limit=2),
+            )
+            raw_results = (rss_hits + wiki_hits)[:max_results]
+
+        return await _scrape_and_format(client, raw_results)
+
+
+async def multi_search_and_scrape(
+    queries: list[str],
+    max_total_sources: int = 8,
+    focus: str = "web",
+) -> list[dict]:
+    """Pro Search: executes multiple decomposed queries in parallel, deduplicates URLs, and scrapes."""
+    clean_queries = [q.strip() for q in queries if q and q.strip()][:3]
+    if not clean_queries:
+        return []
+
+    per_query = max(3, (max_total_sources // len(clean_queries)) + 1)
+    search_tasks = [
+        _staggered_ddgs(_apply_focus_query(q, focus), per_query, delay=idx * 0.25)
+        for idx, q in enumerate(clean_queries)
+    ]
+    batches = await asyncio.gather(*search_tasks)
+
+    deduped: list[dict] = []
+    seen_urls: set[str] = set()
+    max_len = max((len(b) for b in batches), default=0)
+
+    for slot in range(max_len):
+        for batch in batches:
+            if slot < len(batch):
+                item = batch[slot]
+                url = (item.get("href") or "").strip()
+                if url and url not in seen_urls:
+                    seen_urls.add(url)
+                    deduped.append(item)
+                    if len(deduped) >= max_total_sources:
+                        break
+        if len(deduped) >= max_total_sources:
+            break
+
+    async with httpx.AsyncClient() as client:
+        if not deduped:
+            print("🔄 Pro Search DDGS rate-limited. Activating parallel RSS + Wikipedia failover...")
+            rss_hits, wiki_hits = await asyncio.gather(
+                _fallback_google_news_rss(client, clean_queries[0], limit=6),
+                _fallback_wikipedia(client, clean_queries[0], limit=3),
+            )
+            deduped = (rss_hits + wiki_hits)[:max_total_sources]
+
+        return await _scrape_and_format(client, deduped)

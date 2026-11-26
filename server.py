@@ -10,7 +10,7 @@ from google import genai
 from google.genai import types
 from google.genai.errors import ServerError, APIError
 
-from search_engine import search_and_scrape
+from search_engine import search_and_scrape, multi_search_and_scrape
 from threads_db import (
     init_db,
     create_thread,
@@ -61,6 +61,7 @@ class SearchRequest(BaseModel):
     history: list[dict] = []
     thread_id: str | None = None
     focus: str = "web"
+    pro_mode: bool = False
 
 
 FOCUS_STYLE_PROMPTS = {
@@ -114,8 +115,55 @@ def sse_event(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
-def build_grounded_prompt(query: str, sources: list[dict], history: list[dict], focus: str) -> str:
-    """Builds a strict citation-grounded prompt tailored to the active Focus Mode."""
+def plan_pro_subqueries(query: str, focus: str, history: list[dict]) -> list[str]:
+    """Decomposes a complex user question into 3 targeted parallel search queries."""
+    history_snippet = ""
+    if history:
+        last_turns = history[-2:]
+        history_snippet = "Recent context:\n" + "\n".join(
+            f"{m.get('role', 'user').upper()}: {m.get('content', '')[:200]}" for m in last_turns
+        ) + "\n\n"
+
+    prompt = (
+        f"{history_snippet}"
+        f"User question: {query}\n"
+        f"Focus mode: {focus}\n\n"
+        "You are a search query planner for an AI research engine. "
+        "Break the user's question into exactly 3 distinct, concise web search queries "
+        "that together cover different angles, facts, comparisons, or recent updates needed "
+        "to answer thoroughly. Keep each query under 10 words.\n"
+        "Return ONLY a JSON array of 3 strings."
+    )
+    for model_name in FLASH_MODELS:
+        try:
+            resp = ai_client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.2,
+                    automatic_function_calling=NO_AFC_CONFIG,
+                ),
+            )
+            items = json.loads(resp.text)
+            if isinstance(items, list):
+                cleaned = [str(q).strip() for q in items if str(q).strip()][:3]
+                if cleaned:
+                    print(f"⚡ Pro Search planned queries: {cleaned}")
+                    return cleaned
+        except Exception:
+            continue
+    return [query]
+
+
+def build_grounded_prompt(
+    query: str,
+    sources: list[dict],
+    history: list[dict],
+    focus: str,
+    pro_mode: bool = False,
+) -> str:
+    """Builds a strict citation-grounded prompt tailored to Focus Mode and Pro depth."""
     context_blocks = []
     for src in sources:
         context_blocks.append(
@@ -132,9 +180,17 @@ def build_grounded_prompt(query: str, sources: list[dict], history: list[dict], 
         history_text = "Previous conversation context:\n" + "\n".join(lines) + "\n\n"
 
     style_guidance = FOCUS_STYLE_PROMPTS.get(focus, FOCUS_STYLE_PROMPTS["web"])
+    depth_guidance = (
+        "PRO RESEARCH MODE: Cross-reference multiple sources, organize your answer with clear "
+        "Markdown subheadings (##), compare competing viewpoints or benchmarks when present, "
+        "and include concrete specifics (numbers, dates, trade-offs)."
+        if pro_mode
+        else "Keep the response concise, scannable, and directly on-point."
+    )
 
     return f"""You are a precise, real-time AI Answer Engine (like Perplexity AI).
 FOCUS MODE ({focus.upper()}): {style_guidance}
+{depth_guidance}
 
 {history_text}LIVE WEB SOURCES:
 {sources_text}
@@ -185,14 +241,16 @@ async def serve_frontend():
     return {"status": "Perplexity Clone API is live", "models": FLASH_MODELS, "docs": "/docs"}
 
 
+@app.head("/", include_in_schema=False)
+async def health_head():
+    return Response(status_code=200)
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(status_code=204)
 
 
-# ==========================================
-# 📚 THREAD LIBRARY REST ENDPOINTS
-# ==========================================
 @app.get("/api/threads")
 async def api_list_threads():
     return {"threads": await asyncio.to_thread(list_threads)}
@@ -214,14 +272,12 @@ async def api_delete_thread(thread_id: str):
     return {"deleted": True, "thread_id": thread_id}
 
 
-# ==========================================
-# ⚡ LIVE STREAMING SEARCH ENDPOINT (SSE)
-# ==========================================
 @app.post("/api/search")
 async def stream_search(req: SearchRequest):
     async def event_generator():
         query = req.query.strip()
         focus = req.focus if req.focus in FOCUS_STYLE_PROMPTS else "web"
+        pro_mode = bool(req.pro_mode)
 
         if not query:
             yield sse_event({"type": "error", "text": "Query cannot be empty."})
@@ -234,8 +290,19 @@ async def stream_search(req: SearchRequest):
             "code": "developer docs",
             "news": "live news",
         }[focus]
-        yield sse_event({"type": "status", "text": f"Searching {focus_label}..."})
-        sources = await search_and_scrape(query, max_results=5, focus=focus)
+
+        if pro_mode:
+            yield sse_event({"type": "status", "text": "Pro Search: planning multi-step research..."})
+            subqueries = await asyncio.to_thread(plan_pro_subqueries, query, focus, req.history)
+            yield sse_event({"type": "pro_plan", "queries": subqueries})
+            yield sse_event({
+                "type": "status",
+                "text": f"Pro Search: querying {len(subqueries)} parallel angles across {focus_label}...",
+            })
+            sources = await multi_search_and_scrape(subqueries, max_total_sources=8, focus=focus)
+        else:
+            yield sse_event({"type": "status", "text": f"Searching {focus_label}..."})
+            sources = await search_and_scrape(query, max_results=5, focus=focus)
 
         if not sources:
             yield sse_event({"type": "error", "text": "No live search results found. Please retry."})
@@ -258,16 +325,20 @@ async def stream_search(req: SearchRequest):
             for s in sources
         ]
         yield sse_event({"type": "sources", "sources": public_sources})
-        yield sse_event({"type": "status", "text": f"Reading {len(sources)} sources & synthesizing..."})
+        yield sse_event({
+            "type": "status",
+            "text": f"Synthesizing {'deep Pro' if pro_mode else ''} brief from {len(sources)} sources...".replace("  ", " "),
+        })
 
-        prompt = build_grounded_prompt(query, sources, req.history, focus)
+        prompt = build_grounded_prompt(query, sources, req.history, focus, pro_mode=pro_mode)
         full_answer = ""
         streamed_ok = False
         last_error = ""
 
         for model_name in FLASH_MODELS:
             try:
-                print(f"🤖 Synthesizing [{focus}] with model: {model_name}...")
+                mode_tag = f"{focus}|PRO" if pro_mode else focus
+                print(f"🤖 Synthesizing [{mode_tag}] with model: {model_name}...")
                 stream = ai_client.models.generate_content_stream(
                     model=model_name,
                     contents=prompt,
