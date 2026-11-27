@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Perplexity Clone — Live AI Answer Engine</title>
+  <title>Perplexity Clone â€” Live AI Answer Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
@@ -148,13 +148,13 @@
             onclick="toggleSidebar()"
             class="md:hidden px-2.5 py-1 rounded-lg bg-[#202222] border border-[#2e3131] text-xs text-gray-300"
           >
-            ☰ Library
+            â˜° Library
           </button>
           <span id="activeFocusBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-[#202222] border border-[#2e3131] text-gray-300 shrink-0">
-            🌐 All Web
+            ðŸŒ All Web
           </span>
           <span id="activeProBadge" class="hidden text-[11px] px-2.5 py-0.5 rounded-full bg-[#20b8cd]/15 border border-[#20b8cd]/50 text-[#6ee7f7] font-medium shrink-0">
-            ⚡ Pro Search
+            âš¡ Pro Search
           </span>
           <span id="activeDocBadge" class="hidden text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-medium truncate"></span>
         </div>
@@ -179,7 +179,7 @@
         <div class="bg-[#202222] border border-[#343838] focus-within:border-[#20b8cd] rounded-2xl p-3 shadow-xl transition">
           <div class="doc-chip-bar hidden mb-2 flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
             <span class="doc-chip-text truncate"></span>
-            <button type="button" onclick="clearAttachedDoc()" class="text-amber-300 hover:text-white font-bold px-1 shrink-0" title="Remove file">×</button>
+            <button type="button" onclick="clearAttachedDoc()" class="text-amber-300 hover:text-white font-bold px-1 shrink-0" title="Remove file">Ã—</button>
           </div>
           <div class="doc-error-bar hidden mb-2 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300"></div>
 
@@ -191,10 +191,10 @@
           ></textarea>
           <div class="flex flex-wrap items-center justify-between gap-2 mt-2 pt-2.5 border-t border-[#2c2f2f]">
             <div class="flex flex-wrap items-center gap-1.5">
-              <button type="button" data-focus="web" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">🌐 All Web</button>
-              <button type="button" data-focus="academic" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">🎓 Academic</button>
-              <button type="button" data-focus="code" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">💻 Code</button>
-              <button type="button" data-focus="news" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">📰 News</button>
+              <button type="button" data-focus="web" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">ðŸŒ All Web</button>
+              <button type="button" data-focus="academic" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">ðŸŽ“ Academic</button>
+              <button type="button" data-focus="code" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">ðŸ’» Code</button>
+              <button type="button" data-focus="news" class="focus-btn text-xs px-2.5 py-1 rounded-full border border-[#323636] text-gray-300 hover:border-[#20b8cd]/60 transition">ðŸ“° News</button>
             </div>
 
             <div class="flex items-center gap-2">
@@ -204,7 +204,7 @@
                 class="attach-btn text-xs font-medium px-3 py-1.5 rounded-full border border-[#343838] text-gray-300 hover:border-amber-400/60 hover:text-amber-200 transition"
                 title="Attach PDF, TXT, MD, CSV, JSON, or code file (max 10 MB)"
               >
-                📎 Attach
+                ðŸ“Ž Attach
               </button>
               <button
                 type="button"
@@ -212,13 +212,13 @@
                 class="pro-toggle-btn text-xs font-medium px-3 py-1.5 rounded-full border border-[#343838] text-gray-300 hover:border-[#20b8cd]/60 transition"
                 title="Splits complex queries into 3 parallel web searches for deeper synthesis"
               >
-                ⚡ Pro
+                âš¡ Pro
               </button>
               <button
                 type="submit"
                 class="px-4 py-1.5 rounded-full bg-[#20b8cd] hover:bg-[#29cce2] text-[#0e1010] font-semibold text-sm transition"
               >
-                Search →
+                Search â†’
               </button>
             </div>
           </div>
@@ -228,13 +228,13 @@
       <!-- Starter Prompts -->
       <div class="w-full max-w-2xl mt-5 flex flex-wrap gap-2 justify-center">
         <button onclick="runQuickPrompt('Compare FastAPI, Go Fiber, and Node.js Fastify for high-throughput AI streaming APIs', 'code', true)" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#20b8cd]/40 text-[#7ee3f2] transition">
-          ⚡ Pro: FastAPI vs Go vs Node for AI
+          âš¡ Pro: FastAPI vs Go vs Node for AI
         </button>
         <button onclick="runQuickPrompt('James Webb Space Telescope most remarkable discoveries and images', 'web', false)" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
-          🔭 James Webb discoveries + Images
+          ðŸ”­ James Webb discoveries + Images
         </button>
         <button onclick="runQuickPrompt('What is the latest news in AI this week?', 'news', false)" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
-          📰 Latest AI news this week
+          ðŸ“° Latest AI news this week
         </button>
       </div>
     </main>
@@ -247,16 +247,16 @@
       <form id="followupForm" class="max-w-3xl mx-auto">
         <div class="doc-chip-bar hidden mb-2 flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
           <span class="doc-chip-text truncate"></span>
-          <button type="button" onclick="clearAttachedDoc()" class="text-amber-300 hover:text-white font-bold px-1 shrink-0" title="Remove file">×</button>
+          <button type="button" onclick="clearAttachedDoc()" class="text-amber-300 hover:text-white font-bold px-1 shrink-0" title="Remove file">Ã—</button>
         </div>
         <div class="doc-error-bar hidden mb-2 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300"></div>
 
         <div class="flex items-center gap-2 bg-[#202222] border border-[#343838] focus-within:border-[#20b8cd] rounded-full px-3.5 py-2 shadow-2xl transition">
           <select id="bottomFocusSelect" class="bg-[#282b2b] text-xs text-gray-200 border border-[#3a3e3e] rounded-full px-2.5 py-1 focus:outline-none">
-            <option value="web">🌐 Web</option>
-            <option value="academic">🎓 Academic</option>
-            <option value="code">💻 Code</option>
-            <option value="news">📰 News</option>
+            <option value="web">ðŸŒ Web</option>
+            <option value="academic">ðŸŽ“ Academic</option>
+            <option value="code">ðŸ’» Code</option>
+            <option value="news">ðŸ“° News</option>
           </select>
           <input
             id="followupInput"
@@ -271,21 +271,21 @@
             class="attach-btn shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border border-[#343838] text-gray-300 hover:border-amber-400/60 hover:text-amber-200 transition"
             title="Attach PDF or document"
           >
-            📎
+            ðŸ“Ž
           </button>
           <button
             type="button"
             onclick="toggleProMode()"
             class="pro-toggle-btn shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border border-[#343838] text-gray-300 hover:border-[#20b8cd]/60 transition"
           >
-            ⚡ Pro
+            âš¡ Pro
           </button>
           <button
             id="followupSubmitBtn"
             type="submit"
             class="shrink-0 px-4 py-1.5 rounded-full bg-[#20b8cd] hover:bg-[#29cce2] disabled:opacity-40 text-[#0e1010] font-semibold text-sm transition"
           >
-            Ask →
+            Ask â†’
           </button>
         </div>
       </form>
@@ -303,10 +303,10 @@
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <a id="lightboxLink" href="#" target="_blank" rel="noopener noreferrer" class="text-xs px-3 py-1.5 rounded-full bg-[#20b8cd] hover:bg-[#29cce2] text-[#0e1010] font-semibold transition">
-            Open Source ↗
+            Open Source â†—
           </a>
           <button type="button" onclick="closeLightbox()" class="w-8 h-8 rounded-full bg-[#262929] hover:bg-[#323636] text-gray-300 hover:text-white text-lg flex items-center justify-center transition">
-            ×
+            Ã—
           </button>
         </div>
       </div>
@@ -341,10 +341,10 @@
     const lightboxLink = document.getElementById("lightboxLink");
 
     const FOCUS_LABELS = {
-      web: "🌐 All Web",
-      academic: "🎓 Academic",
-      code: "💻 Code",
-      news: "📰 News",
+      web: "ðŸŒ All Web",
+      academic: "ðŸŽ“ Academic",
+      code: "ðŸ’» Code",
+      news: "ðŸ“° News",
     };
 
     let currentFocus = "web";
@@ -402,12 +402,12 @@
         const meta = attachedDoc.pages
           ? `${attachedDoc.pages} page${attachedDoc.pages === 1 ? "" : "s"}`
           : `${Math.max(1, Math.round(attachedDoc.chars / 1000))}k chars`;
-        const truncTag = attachedDoc.truncated ? " · trimmed to 24k chars" : "";
-        const label = `📄 ${attachedDoc.filename} (${meta}${truncTag})`;
+        const truncTag = attachedDoc.truncated ? " Â· trimmed to 24k chars" : "";
+        const label = `ðŸ“„ ${attachedDoc.filename} (${meta}${truncTag})`;
 
         document.querySelectorAll(".doc-chip-bar").forEach((bar) => bar.classList.remove("hidden"));
         document.querySelectorAll(".doc-chip-text").forEach((span) => (span.textContent = label));
-        activeDocBadge.textContent = `📄 ${attachedDoc.filename}`;
+        activeDocBadge.textContent = `ðŸ“„ ${attachedDoc.filename}`;
         activeDocBadge.classList.remove("hidden");
       } else {
         document.querySelectorAll(".doc-chip-bar").forEach((bar) => bar.classList.add("hidden"));
@@ -436,7 +436,7 @@
       document.querySelectorAll(".attach-btn").forEach((btn) => {
         btn.disabled = true;
         btn.dataset.prev = btn.textContent;
-        btn.textContent = "⏳...";
+        btn.textContent = "â³...";
       });
 
       try {
@@ -455,7 +455,7 @@
       } finally {
         document.querySelectorAll(".attach-btn").forEach((btn) => {
           btn.disabled = false;
-          btn.textContent = btn.dataset.prev || "📎 Attach";
+          btn.textContent = btn.dataset.prev || "ðŸ“Ž Attach";
         });
       }
     });
@@ -474,7 +474,7 @@
       activeProBadge.classList.toggle("hidden", !isProMode);
       document.querySelectorAll(".pro-toggle-btn").forEach((btn) => {
         btn.classList.toggle("pro-toggle-on", isProMode);
-        btn.textContent = isProMode ? "⚡ Pro ON" : "⚡ Pro";
+        btn.textContent = isProMode ? "âš¡ Pro ON" : "âš¡ Pro";
       });
     }
 
@@ -528,10 +528,10 @@
       const turn = document.createElement("section");
       turn.className = "border-b border-[#2a2d2d] pb-8";
       const docBadgeHtml = docName
-        ? `<span class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-medium">📄 ${escapeHtml(docName)}</span>`
+        ? `<span class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-medium">ðŸ“„ ${escapeHtml(docName)}</span>`
         : "";
       const proBadgeHtml = pro
-        ? `<span class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-[#20b8cd]/15 border border-[#20b8cd]/40 text-[#6ee7f7] font-medium">⚡ Pro</span>`
+        ? `<span class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-[#20b8cd]/15 border border-[#20b8cd]/40 text-[#6ee7f7] font-medium">âš¡ Pro</span>`
         : "";
 
       turn.innerHTML = `
@@ -549,10 +549,10 @@
         <!-- Perplexity-style Turn Tabs -->
         <div class="turn-tabs flex items-center gap-5 border-b border-[#262929] mb-5 text-xs font-medium">
           <button type="button" class="tab-btn-answer turn-tab-active pb-2.5 flex items-center gap-1.5 transition">
-            <span>✨</span> Answer
+            <span>âœ¨</span> Answer
           </button>
           <button type="button" class="tab-btn-images hidden pb-2.5 text-gray-400 hover:text-white flex items-center gap-1.5 transition">
-            <span>🖼️</span> <span class="images-tab-label">Images</span>
+            <span>ðŸ–¼ï¸</span> <span class="images-tab-label">Images</span>
           </button>
         </div>
 
@@ -565,7 +565,7 @@
 
           <div class="pro-plan-wrapper hidden mb-5 p-3.5 rounded-xl bg-[#1c1f1f] border border-[#20b8cd]/30">
             <div class="text-[11px] font-semibold uppercase tracking-wider text-[#6ee7f7] mb-2 flex items-center gap-1.5">
-              <span>⚡</span> Pro Research Steps
+              <span>âš¡</span> Pro Research Steps
             </div>
             <div class="pro-plan-list flex flex-wrap gap-2"></div>
           </div>
@@ -574,10 +574,10 @@
           <div class="media-strip-wrapper hidden mb-6">
             <div class="flex items-center justify-between mb-2">
               <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                <span>🖼️</span> Visuals
+                <span>ðŸ–¼ï¸</span> Visuals
               </div>
               <button type="button" class="view-all-images-btn text-xs text-[#20b8cd] hover:underline">
-                View all →
+                View all â†’
               </button>
             </div>
             <div class="media-strip-grid grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
@@ -585,7 +585,7 @@
 
           <div class="sources-wrapper hidden mb-6">
             <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
-              <span>📚</span> Sources
+              <span>ðŸ“š</span> Sources
             </div>
             <div class="sources-grid grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
           </div>
@@ -593,7 +593,7 @@
           <div class="answer-wrapper">
             <div class="flex items-center justify-between mb-2">
               <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                <span>✨</span> Answer
+                <span>âœ¨</span> Answer
               </div>
               <button type="button" class="copy-btn hidden text-xs px-2.5 py-1 rounded-lg bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
                 Copy
@@ -684,7 +684,7 @@
       copyBtn.onclick = async () => {
         try {
           await navigator.clipboard.writeText(rawText);
-          copyBtn.textContent = "Copied ✓";
+          copyBtn.textContent = "Copied âœ“";
           setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
         } catch {
           copyBtn.textContent = "Copy failed";
@@ -697,7 +697,7 @@
       queries.forEach((q) => {
         const chip = document.createElement("span");
         chip.className = "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-[#232727] border border-[#323838] text-gray-200";
-        chip.innerHTML = `<span class="text-[#20b8cd]">🔍</span><span>${escapeHtml(q)}</span>`;
+        chip.innerHTML = `<span class="text-[#20b8cd]">ðŸ”</span><span>${escapeHtml(q)}</span>`;
         container.appendChild(chip);
       });
     }
@@ -717,7 +717,7 @@
           : "group block p-2.5 rounded-xl bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] hover:border-[#3f4444] transition";
 
         const iconHtml = isLocalDoc
-          ? `<span class="text-xs shrink-0">📄</span>`
+          ? `<span class="text-xs shrink-0">ðŸ“„</span>`
           : `<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(src.domain)}&sz=32" alt="" class="w-3.5 h-3.5 rounded-sm shrink-0" onerror="this.style.display='none'" />`;
 
         card.innerHTML = `
@@ -781,7 +781,7 @@
           delBtn.type = "button";
           delBtn.title = "Delete thread";
           delBtn.className = "opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 px-1 transition";
-          delBtn.textContent = "×";
+          delBtn.textContent = "Ã—";
           delBtn.addEventListener("click", async (e) => {
             e.stopPropagation();
             if (isStreaming) return;
@@ -818,7 +818,7 @@
 
         (thread.turns || []).forEach((saved) => {
           const firstSrc = saved.sources?.[0];
-          const docName = firstSrc && !firstSrc.url ? firstSrc.title.replace(/^📄\s*/, "") : "";
+          const docName = firstSrc && !firstSrc.url ? firstSrc.title.replace(/^ðŸ“„\s*/, "") : "";
           const turn = createTurnElement(saved.query, saved.focus, (saved.sources?.length || 0) > 5, docName);
           turn.querySelector(".status-bar").classList.add("hidden");
 
@@ -989,7 +989,7 @@
       heroInput.value = "";
     });
 
-    heroInput.addEventListener("keydown", (e) => {
+    let lastPasteAt = 0; heroInput.addEventListener("paste", () => { lastPasteAt = Date.now(); }); heroInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && Date.now() - lastPasteAt < 300) { e.preventDefault(); return; }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         heroForm.requestSubmit();
@@ -1006,3 +1006,4 @@
   </script>
 </body>
 </html>
+
