@@ -53,6 +53,87 @@ async def _staggered_ddgs(query: str, max_results: int, delay: float = 0.0) -> l
     return await asyncio.to_thread(_run_ddgs_with_failover, query, max_results)
 
 
+def _run_ddgs_images(query: str, max_results: int = 8) -> list[dict]:
+    """Queries DDGS image search and normalizes image results."""
+    try:
+        raw = DDGS(timeout=8).images(query, max_results=max_results) or []
+        images = []
+        for item in raw:
+            img_url = (item.get("image") or "").strip()
+            thumb_url = (item.get("thumbnail") or img_url).strip()
+            source_url = (item.get("url") or img_url).strip()
+            if not (img_url.startswith("http://") or img_url.startswith("https://")):
+                continue
+            domain = urlparse(source_url).netloc.replace("www.", "") or "web"
+            images.append({
+                "title": (item.get("title") or "Image").strip(),
+                "image": img_url,
+                "thumbnail": thumb_url if thumb_url.startswith("http") else img_url,
+                "url": source_url,
+                "domain": domain,
+            })
+        if images:
+            print(f"🖼️ DDGS Images returned {len(images)} results")
+        return images
+    except Exception as e:
+        print(f"⚠️ DDGS Images failed ({type(e).__name__}). Using fallback...")
+        return []
+
+
+async def _fallback_wikipedia_images(client: httpx.AsyncClient, query: str, limit: int = 6) -> list[dict]:
+    """Fallback image source using Wikipedia's free pageimages API."""
+    url = (
+        "https://en.wikipedia.org/w/api.php"
+        f"?action=query&generator=search&gsrsearch={quote_plus(query)}&gsrlimit={limit + 4}"
+        "&prop=pageimages|info&piprop=thumbnail&pithumbsize=640&inprop=url&format=json"
+    )
+    try:
+        resp = await client.get(url, headers=HEADERS, timeout=6.0)
+        resp.raise_for_status()
+        pages = resp.json().get("query", {}).get("pages", {})
+        images = []
+        for page in pages.values():
+            thumb = (page.get("thumbnail") or {}).get("source", "")
+            if not thumb:
+                continue
+            title = (page.get("title") or "Wikipedia Image").strip()
+            page_url = (page.get("fullurl") or f"https://en.wikipedia.org/wiki/{quote_plus(title.replace(' ', '_'))}")
+            images.append({
+                "title": title,
+                "image": thumb,
+                "thumbnail": thumb,
+                "url": page_url,
+                "domain": "en.wikipedia.org",
+            })
+            if len(images) >= limit:
+                break
+        if images:
+            print(f"🖼️ Fallback Wikipedia Images returned {len(images)} results")
+        return images
+    except Exception:
+        return []
+
+
+async def search_images(query: str, max_results: int = 8) -> list[dict]:
+    """Fetches live images for a query with automatic Wikimedia fallback and deduplication."""
+    images = await asyncio.to_thread(_run_ddgs_images, query, max_results)
+    if len(images) < 4:
+        async with httpx.AsyncClient() as client:
+            wiki_imgs = await _fallback_wikipedia_images(client, query, limit=max_results)
+            images.extend(wiki_imgs)
+
+    deduped = []
+    seen = set()
+    for img in images:
+        key = img.get("image") or img.get("thumbnail")
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append(img)
+            if len(deduped) >= max_results:
+                break
+    return deduped
+
+
 async def _fallback_google_news_rss(client: httpx.AsyncClient, query: str, limit: int = 5) -> list[dict]:
     """Fallback 1: Queries Google News RSS directly (no API key, rarely rate-limited)."""
     url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl=en-US&gl=US&ceid=US:en"

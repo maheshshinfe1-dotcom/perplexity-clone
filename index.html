@@ -92,6 +92,10 @@
       color: #6ee7f7;
       box-shadow: 0 0 12px rgba(32, 184, 205, 0.25);
     }
+    .turn-tab-active {
+      color: #ffffff;
+      border-bottom: 2px solid #20b8cd;
+    }
     @keyframes pulseDot {
       0%, 100% { opacity: 0.3; transform: scale(0.85); }
       50% { opacity: 1; transform: scale(1.15); }
@@ -101,6 +105,7 @@
 </head>
 <body class="min-h-screen flex bg-[#191a1a]">
 
+  <!-- Hidden Shared File Picker -->
   <input
     id="docFileInput"
     type="file"
@@ -108,6 +113,7 @@
     class="hidden"
   />
 
+  <!-- Left Persistent Library Sidebar -->
   <aside id="sidebar" class="w-64 shrink-0 bg-[#141515] border-r border-[#262929] hidden md:flex flex-col h-screen sticky top-0">
     <div class="p-4 border-b border-[#262929]">
       <div class="flex items-center gap-2.5 mb-4 cursor-pointer" onclick="resetThread()">
@@ -131,8 +137,10 @@
     <div id="threadsList" class="flex-1 overflow-y-auto px-2 pb-4 space-y-1"></div>
   </aside>
 
+  <!-- Main Workspace -->
   <div class="flex-1 flex flex-col min-w-0 min-h-screen">
 
+    <!-- Top Bar -->
     <header class="sticky top-0 z-30 border-b border-[#262929] bg-[#191a1a]/90 backdrop-blur">
       <div class="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between">
         <div class="flex items-center gap-2 min-w-0">
@@ -161,6 +169,7 @@
       </div>
     </header>
 
+    <!-- Landing Hero View -->
     <main id="heroView" class="flex-1 flex flex-col items-center justify-center px-4 pb-20">
       <h1 class="text-3xl sm:text-4xl font-semibold text-white tracking-tight mb-7 text-center">
         Where knowledge begins
@@ -216,21 +225,24 @@
         </div>
       </form>
 
+      <!-- Starter Prompts -->
       <div class="w-full max-w-2xl mt-5 flex flex-wrap gap-2 justify-center">
         <button onclick="runQuickPrompt('Compare FastAPI, Go Fiber, and Node.js Fastify for high-throughput AI streaming APIs', 'code', true)" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#20b8cd]/40 text-[#7ee3f2] transition">
           ⚡ Pro: FastAPI vs Go vs Node for AI
         </button>
+        <button onclick="runQuickPrompt('James Webb Space Telescope most remarkable discoveries and images', 'web', false)" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
+          🔭 James Webb discoveries + Images
+        </button>
         <button onclick="runQuickPrompt('What is the latest news in AI this week?', 'news', false)" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
           📰 Latest AI news this week
-        </button>
-        <button onclick="runQuickPrompt('Recent papers on test-time compute scaling in LLMs', 'academic', true)" class="text-xs px-3 py-1.5 rounded-full bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
-          🎓 Pro: Test-time compute scaling
         </button>
       </div>
     </main>
 
+    <!-- Active Conversation Thread View -->
     <main id="threadView" class="hidden flex-1 w-full max-w-4xl mx-auto px-4 pt-6 pb-44 space-y-10"></main>
 
+    <!-- Sticky Bottom Follow-Up Input Bar -->
     <div id="bottomBar" class="hidden fixed bottom-0 left-0 md:left-64 right-0 bg-gradient-to-t from-[#191a1a] via-[#191a1a] to-transparent pt-6 pb-5 px-4 z-20">
       <form id="followupForm" class="max-w-3xl mx-auto">
         <div class="doc-chip-bar hidden mb-2 flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
@@ -281,6 +293,29 @@
 
   </div>
 
+  <!-- Full-Screen Image Lightbox Modal -->
+  <div id="imageLightbox" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4" onclick="closeLightbox(event)">
+    <div class="relative max-w-4xl w-full bg-[#1a1c1c] border border-[#323636] rounded-2xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-[#2a2d2d]">
+        <div class="min-w-0">
+          <div id="lightboxTitle" class="text-sm font-medium text-white truncate"></div>
+          <div id="lightboxDomain" class="text-xs text-gray-400 truncate"></div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <a id="lightboxLink" href="#" target="_blank" rel="noopener noreferrer" class="text-xs px-3 py-1.5 rounded-full bg-[#20b8cd] hover:bg-[#29cce2] text-[#0e1010] font-semibold transition">
+            Open Source ↗
+          </a>
+          <button type="button" onclick="closeLightbox()" class="w-8 h-8 rounded-full bg-[#262929] hover:bg-[#323636] text-gray-300 hover:text-white text-lg flex items-center justify-center transition">
+            ×
+          </button>
+        </div>
+      </div>
+      <div class="bg-[#111212] flex items-center justify-center max-h-[75vh] overflow-hidden p-3">
+        <img id="lightboxImg" src="" alt="" class="max-h-[70vh] max-w-full object-contain rounded-lg" />
+      </div>
+    </div>
+  </div>
+
   <script>
     const sidebar = document.getElementById("sidebar");
     const threadsList = document.getElementById("threadsList");
@@ -298,6 +333,12 @@
     const followupSubmitBtn = document.getElementById("followupSubmitBtn");
     const bottomFocusSelect = document.getElementById("bottomFocusSelect");
     const docFileInput = document.getElementById("docFileInput");
+
+    const imageLightbox = document.getElementById("imageLightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+    const lightboxTitle = document.getElementById("lightboxTitle");
+    const lightboxDomain = document.getElementById("lightboxDomain");
+    const lightboxLink = document.getElementById("lightboxLink");
 
     const FOCUS_LABELS = {
       web: "🌐 All Web",
@@ -318,6 +359,30 @@
       div.textContent = text ?? "";
       return div.innerHTML;
     }
+
+    function openLightbox(imgObj) {
+      lightboxImg.src = imgObj.image || imgObj.thumbnail;
+      lightboxImg.onerror = () => {
+        if (imgObj.thumbnail && lightboxImg.src !== imgObj.thumbnail) {
+          lightboxImg.src = imgObj.thumbnail;
+        }
+      };
+      lightboxTitle.textContent = imgObj.title || "Image";
+      lightboxDomain.textContent = imgObj.domain || "";
+      lightboxLink.href = imgObj.url || imgObj.image || "#";
+      imageLightbox.classList.remove("hidden");
+    }
+
+    function closeLightbox() {
+      imageLightbox.classList.add("hidden");
+      lightboxImg.src = "";
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !imageLightbox.classList.contains("hidden")) {
+        closeLightbox();
+      }
+    });
 
     function showDocError(msg) {
       document.querySelectorAll(".doc-error-bar").forEach((el) => {
@@ -442,6 +507,23 @@
       });
     }
 
+    function switchTurnTab(turn, tabName) {
+      const answerTabBtn = turn.querySelector(".tab-btn-answer");
+      const imagesTabBtn = turn.querySelector(".tab-btn-images");
+      const answerPanel = turn.querySelector(".panel-answer");
+      const imagesPanel = turn.querySelector(".panel-images");
+
+      const showImages = tabName === "images";
+      answerPanel.classList.toggle("hidden", showImages);
+      imagesPanel.classList.toggle("hidden", !showImages);
+
+      answerTabBtn.classList.toggle("turn-tab-active", !showImages);
+      answerTabBtn.classList.toggle("text-gray-400", showImages);
+
+      imagesTabBtn.classList.toggle("turn-tab-active", showImages);
+      imagesTabBtn.classList.toggle("text-gray-400", !showImages);
+    }
+
     function createTurnElement(query, focus, pro, docName = "") {
       const turn = document.createElement("section");
       turn.className = "border-b border-[#2a2d2d] pb-8";
@@ -464,44 +546,137 @@
           </div>
         </div>
 
-        <div class="status-bar inline-flex items-center gap-2 text-xs text-[#20b8cd] bg-[#20b8cd]/10 border border-[#20b8cd]/30 px-3 py-1.5 rounded-full mb-5">
-          <span class="w-2 h-2 rounded-full bg-[#20b8cd] pulse-dot"></span>
-          <span class="status-text">Connecting...</span>
+        <!-- Perplexity-style Turn Tabs -->
+        <div class="turn-tabs flex items-center gap-5 border-b border-[#262929] mb-5 text-xs font-medium">
+          <button type="button" class="tab-btn-answer turn-tab-active pb-2.5 flex items-center gap-1.5 transition">
+            <span>✨</span> Answer
+          </button>
+          <button type="button" class="tab-btn-images hidden pb-2.5 text-gray-400 hover:text-white flex items-center gap-1.5 transition">
+            <span>🖼️</span> <span class="images-tab-label">Images</span>
+          </button>
         </div>
 
-        <div class="pro-plan-wrapper hidden mb-5 p-3.5 rounded-xl bg-[#1c1f1f] border border-[#20b8cd]/30">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-[#6ee7f7] mb-2 flex items-center gap-1.5">
-            <span>⚡</span> Pro Research Steps
+        <!-- Tab 1: Answer Panel -->
+        <div class="panel-answer">
+          <div class="status-bar inline-flex items-center gap-2 text-xs text-[#20b8cd] bg-[#20b8cd]/10 border border-[#20b8cd]/30 px-3 py-1.5 rounded-full mb-5">
+            <span class="w-2 h-2 rounded-full bg-[#20b8cd] pulse-dot"></span>
+            <span class="status-text">Connecting...</span>
           </div>
-          <div class="pro-plan-list flex flex-wrap gap-2"></div>
-        </div>
 
-        <div class="sources-wrapper hidden mb-6">
-          <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
-            <span>📚</span> Sources
-          </div>
-          <div class="sources-grid grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
-        </div>
-
-        <div class="answer-wrapper">
-          <div class="flex items-center justify-between mb-2">
-            <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <span>✨</span> Answer
+          <div class="pro-plan-wrapper hidden mb-5 p-3.5 rounded-xl bg-[#1c1f1f] border border-[#20b8cd]/30">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-[#6ee7f7] mb-2 flex items-center gap-1.5">
+              <span>⚡</span> Pro Research Steps
             </div>
-            <button type="button" class="copy-btn hidden text-xs px-2.5 py-1 rounded-lg bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
-              Copy
-            </button>
+            <div class="pro-plan-list flex flex-wrap gap-2"></div>
           </div>
-          <div class="answer-prose text-base"></div>
+
+          <!-- Visual Media Preview Strip -->
+          <div class="media-strip-wrapper hidden mb-6">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                <span>🖼️</span> Visuals
+              </div>
+              <button type="button" class="view-all-images-btn text-xs text-[#20b8cd] hover:underline">
+                View all →
+              </button>
+            </div>
+            <div class="media-strip-grid grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+          </div>
+
+          <div class="sources-wrapper hidden mb-6">
+            <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
+              <span>📚</span> Sources
+            </div>
+            <div class="sources-grid grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+          </div>
+
+          <div class="answer-wrapper">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                <span>✨</span> Answer
+              </div>
+              <button type="button" class="copy-btn hidden text-xs px-2.5 py-1 rounded-lg bg-[#202222] hover:bg-[#282b2b] border border-[#2e3131] text-gray-300 transition">
+                Copy
+              </button>
+            </div>
+            <div class="answer-prose text-base"></div>
+          </div>
+
+          <div class="followups-wrapper hidden mt-7 pt-5 border-t border-[#262929]">
+            <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5">Related</div>
+            <div class="followups-list divide-y divide-[#262929]"></div>
+          </div>
         </div>
 
-        <div class="followups-wrapper hidden mt-7 pt-5 border-t border-[#262929]">
-          <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5">Related</div>
-          <div class="followups-list divide-y divide-[#262929]"></div>
+        <!-- Tab 2: Full Images Gallery Panel -->
+        <div class="panel-images hidden">
+          <div class="images-gallery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
         </div>
       `;
+
+      turn.querySelector(".tab-btn-answer").addEventListener("click", () => switchTurnTab(turn, "answer"));
+      turn.querySelector(".tab-btn-images").addEventListener("click", () => switchTurnTab(turn, "images"));
+      turn.querySelector(".view-all-images-btn").addEventListener("click", () => switchTurnTab(turn, "images"));
+
       threadView.appendChild(turn);
       return turn;
+    }
+
+    function createImageCard(imgObj, compact = false) {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "group relative block w-full text-left rounded-xl overflow-hidden bg-[#202222] border border-[#2e3131] hover:border-[#20b8cd]/70 transition focus:outline-none";
+
+      const img = document.createElement("img");
+      img.src = imgObj.thumbnail || imgObj.image;
+      img.alt = imgObj.title || "Result image";
+      img.loading = "lazy";
+      img.className = compact
+        ? "w-full h-28 object-cover group-hover:scale-105 transition duration-200"
+        : "w-full h-40 object-cover group-hover:scale-105 transition duration-200";
+
+      let retried = false;
+      img.onerror = () => {
+        if (!retried && imgObj.image && img.src !== imgObj.image) {
+          retried = true;
+          img.src = imgObj.image;
+        } else {
+          card.remove();
+        }
+      };
+
+      const meta = document.createElement("div");
+      meta.className = compact
+        ? "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-2 py-1.5"
+        : "p-2 bg-[#1c1e1e]";
+      meta.innerHTML = compact
+        ? `<div class="text-[10px] text-gray-200 truncate">${escapeHtml(imgObj.domain)}</div>`
+        : `<div class="text-xs font-medium text-gray-200 line-clamp-1">${escapeHtml(imgObj.title)}</div>
+           <div class="text-[11px] text-gray-400 truncate mt-0.5">${escapeHtml(imgObj.domain)}</div>`;
+
+      card.appendChild(img);
+      card.appendChild(meta);
+      card.addEventListener("click", () => openLightbox(imgObj));
+      return card;
+    }
+
+    function renderTurnImages(turn, images) {
+      if (!images || !images.length) return;
+      const stripWrapper = turn.querySelector(".media-strip-wrapper");
+      const stripGrid = turn.querySelector(".media-strip-grid");
+      const galleryGrid = turn.querySelector(".images-gallery-grid");
+      const imagesTabBtn = turn.querySelector(".tab-btn-images");
+      const imagesTabLabel = turn.querySelector(".images-tab-label");
+
+      stripGrid.innerHTML = "";
+      galleryGrid.innerHTML = "";
+
+      images.slice(0, 4).forEach((imgObj) => stripGrid.appendChild(createImageCard(imgObj, true)));
+      images.forEach((imgObj) => galleryGrid.appendChild(createImageCard(imgObj, false)));
+
+      imagesTabLabel.textContent = `Images (${images.length})`;
+      imagesTabBtn.classList.remove("hidden");
+      stripWrapper.classList.remove("hidden");
     }
 
     function wireCopyButton(copyBtn, rawText) {
@@ -754,6 +929,8 @@
               payload.sources.forEach((s) => (sourcesMap[String(s.id)] = s));
               renderSourceCards(sourcesGrid, payload.sources);
               sourcesWrapper.classList.remove("hidden");
+            } else if (payload.type === "images" && payload.images?.length) {
+              renderTurnImages(turn, payload.images);
             } else if (payload.type === "token") {
               rawAnswer += payload.text;
               answerProse.innerHTML = renderMarkdownWithCitations(rawAnswer, sourcesMap);

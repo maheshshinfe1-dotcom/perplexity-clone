@@ -12,7 +12,7 @@ from google import genai
 from google.genai import types
 from google.genai.errors import ServerError, APIError
 
-from search_engine import search_and_scrape, multi_search_and_scrape
+from search_engine import search_and_scrape, multi_search_and_scrape, search_images
 from threads_db import (
     init_db,
     create_thread,
@@ -23,7 +23,7 @@ from threads_db import (
     delete_thread,
 )
 
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB limit
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_DOC_CHARS = 24000
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md", ".csv", ".json", ".py", ".js", ".ts"}
 
@@ -304,9 +304,6 @@ async def favicon():
     return Response(status_code=204)
 
 
-# ==========================================
-# 📄 DOCUMENT UPLOAD & PARSING ENDPOINT
-# ==========================================
 @app.post("/api/upload")
 async def upload_document(file: UploadFile = File(...)):
     filename = Path(file.filename or "document.txt").name
@@ -346,9 +343,6 @@ async def upload_document(file: UploadFile = File(...)):
     }
 
 
-# ==========================================
-# 📚 THREAD LIBRARY REST ENDPOINTS
-# ==========================================
 @app.get("/api/threads")
 async def api_list_threads():
     return {"threads": await asyncio.to_thread(list_threads)}
@@ -370,9 +364,6 @@ async def api_delete_thread(thread_id: str):
     return {"deleted": True, "thread_id": thread_id}
 
 
-# ==========================================
-# ⚡ LIVE STREAMING SEARCH ENDPOINT (SSE)
-# ==========================================
 @app.post("/api/search")
 async def stream_search(req: SearchRequest):
     async def event_generator():
@@ -392,6 +383,9 @@ async def stream_search(req: SearchRequest):
             "code": "developer docs",
             "news": "live news",
         }[focus]
+
+        # Launch image search concurrently so it adds zero latency to web scraping
+        image_task = asyncio.create_task(search_images(query, max_results=8))
 
         # Step 1: Standard Search OR Pro Multi-Step Query Decomposition
         if pro_mode:
@@ -438,6 +432,7 @@ async def stream_search(req: SearchRequest):
             sources.append({**ws, "id": start_idx + offset})
 
         if not sources:
+            image_task.cancel()
             yield sse_event({"type": "error", "text": "No live search results found. Please retry."})
             yield sse_event({"type": "done"})
             return
@@ -454,12 +449,20 @@ async def stream_search(req: SearchRequest):
                 "focus": created["focus"],
             })
 
-        # Step 3: Push Source Cards Immediately
+        # Step 3: Push Source Cards + Live Visual Media Strip
         public_sources = [
             {"id": s["id"], "title": s["title"], "url": s["url"], "domain": s["domain"]}
             for s in sources
         ]
         yield sse_event({"type": "sources", "sources": public_sources})
+
+        try:
+            images = await asyncio.wait_for(image_task, timeout=4.0)
+        except Exception:
+            images = []
+        if images:
+            yield sse_event({"type": "images", "images": images})
+
         yield sse_event({
             "type": "status",
             "text": f"Synthesizing {'deep Pro' if pro_mode else ''} brief from {len(sources)} sources...".replace("  ", " "),
