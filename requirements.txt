@@ -4,3 +4,5 @@ ddgs
 httpx
 beautifulsoup4
 google-genai
+pypdf
+python-multipart
